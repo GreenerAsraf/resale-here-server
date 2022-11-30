@@ -45,6 +45,8 @@ async function run(){
     try{ 
       const productCollection = client.db('resale-here').collection('laptops');
       const usersCollection = client.db('resale-here').collection('users');
+      const addedProductsCollection = client.db('resale-here').collection('products');
+      
 
       const verifyAdmin = async (req, res, next) => {
         const decodedEmail = req.decoded.email;
@@ -62,6 +64,14 @@ async function run(){
           const query = {};
           const options = await productCollection.find(query).toArray();
           res.send(options)
+        })
+
+        // added products get api
+        app.get('/products', async (req, res) =>{
+          const query = {};
+          const products = await addedProductsCollection.find(query).toArray();
+          res.send(products)
+
         })
 
         app.get('/users', async (req, res) => {
@@ -107,6 +117,15 @@ async function run(){
       res.send({ result, token })
     })
 
+    // check admin 
+    
+    app.get('/users/admin/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email }
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === 'admin' });
+  })
+
 
   // loading users and make admin 
   app.put('/users/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
@@ -135,6 +154,12 @@ async function run(){
 //     res.send(result);
 // })
 
+
+app.post('/products', async (req, res) => {
+  const product = req.body;
+  const result = await addedProductsCollection.insertOne(product);
+  res.send(result);
+});
     }
     finally{
 
