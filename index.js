@@ -46,6 +46,7 @@ async function run(){
       const productCollection = client.db('resale-here').collection('laptops');
       const usersCollection = client.db('resale-here').collection('users');
       const addedProductsCollection = client.db('resale-here').collection('products');
+      const sellersCollection = client.db('resale-here').collection('seller');
       
 
       const verifyAdmin = async (req, res, next) => {
@@ -58,6 +59,18 @@ async function run(){
         }
         next();
     }
+      const verifySeller = async (req, res, next) => {
+        const decodedEmail = req.decoded.email;
+        const query = { email: decodedEmail };
+        const user = await usersCollection.findOne(query);
+    
+        if (user?.role !== 'seller') {
+            return res.status(403).send({ message: 'forbidden access' })
+        }
+        next();
+    }
+
+
 
         app.get('/laptops', async (req, res) => {
           // const date = req.query.date;
@@ -125,6 +138,14 @@ async function run(){
       const user = await usersCollection.findOne(query);
       res.send({ isAdmin: user?.role === 'admin' });
   })
+    // check seller 
+    
+    app.get('/users/seller/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email }
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === 'seller' });
+  })
 
 
   // loading users and make admin 
@@ -140,19 +161,19 @@ async function run(){
     const result = await usersCollection.updateOne(filter, updatedDoc, options);
     res.send(result);
 });
-
-// temporary to update price field on appointment options
-// app.get('/addPrice', async (req, res) => {
-//     const filter = {}
-//     const options = { upsert: true }
-//     const updatedDoc = {
-//         $set: {
-//             price: 99
-//         }
-//     }
-//     const result = await appointmentOptionCollection.updateMany(filter, updatedDoc, options);
-//     res.send(result);
-// })
+  // loading users and make seller 
+  app.put('/users/seller/:id', verifyJWT, verifySeller, async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: ObjectId(id) }
+    const options = { upsert: true };
+    const updatedDoc = {
+        $set: {
+            role: 'seller'
+        }
+    }
+    const result = await sellerCollection.updateOne(filter, updatedDoc, options);
+    res.send(result);
+});
 
 
 app.post('/products', async (req, res) => {
@@ -160,6 +181,19 @@ app.post('/products', async (req, res) => {
   const result = await addedProductsCollection.insertOne(product);
   res.send(result);
 });
+
+app.get('/seller', verifyJWT, verifyAdmin, async (req, res) => {
+  const query = {};
+  const sellers = await sellersCollection.find(query).toArray();
+  res.send(sellers);
+})
+
+app.post('/seller', verifyJWT, verifySeller, async (req, res) => {
+  const seller = req.body;
+  const result = await sellersCollection.insertOne(seller);
+  res.send(result);
+});
+
     }
     finally{
 
