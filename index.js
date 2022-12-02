@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require ('dotenv').config();
@@ -73,7 +72,7 @@ async function run(){
 
 
         app.get('/laptops', async (req, res) => {
-          // const date = req.query.date;
+          
           const query = {};
           const options = await productCollection.find(query).toArray();
           res.send(options)
